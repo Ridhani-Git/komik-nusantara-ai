@@ -65,16 +65,14 @@ def generate_image(prompt_text):
         st.error("⚠️ API Key belum dipasang di Secrets!")
         return None
         
-    # Menggunakan model 'imagen-3.0-fast-001' yang lebih ramah bagi pengguna free tier
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-fast-001:predict?key={API_KEY}"
+    # Menggunakan model 'imagen-4.0-generate-001' yang merupakan standar lingkungan ini
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key={API_KEY}"
     
-    # PERBAIKAN PAYLOAD: 'instances' harus berupa LIST of objects
+    # Format payload yang benar: 'instances' adalah OBJECT, bukan list
     payload = {
-        "instances": [
-            {
-                "prompt": prompt_text
-            }
-        ],
+        "instances": {
+            "prompt": prompt_text
+        },
         "parameters": {
             "sampleCount": 1
         }
@@ -95,6 +93,7 @@ def generate_image(prompt_text):
             st.error(f"Eror dari Server (Status {res.status_code})")
             with st.expander("Klik untuk Detail Eror"):
                 try:
+                    # Mencoba menampilkan JSON eror jika ada
                     st.json(res.json())
                 except:
                     st.write(res.text)
