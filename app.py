@@ -43,11 +43,11 @@ st.markdown("<p style='text-align: center; color: #94a3b8;'>Ubah Legenda Nusanta
 # 3. Database Cerita Rakyat
 cerita_rakyat = {
     "Malin Kundang": [
-        {"id": 1, "caption": "Malin berpamitan pada ibunya di dermaga kecil untuk merantau mengejar nasib.", "prompt": "Indonesian folklore comic style: young man in traditional West Sumatra clothes saying goodbye to his old mother, wooden dock, 19th century village coast"},
-        {"id": 2, "caption": "Malin Kundang dikutuk menjadi batu di tepi pantai setelah durhaka kepada ibunya.", "prompt": "Indonesian folklore comic style: man in merchant clothes turning into stone statue on a beach, stormy sea, lightning, dramatic shadows"}
+        {"id": 1, "caption": "Malin berpamitan pada ibunya di dermaga kecil untuk merantau mengejar nasib.", "prompt": "Indonesian folklore comic style: young man in traditional West Sumatra clothes saying goodbye to his old mother, wooden dock, 19th century village coast, digital illustration"},
+        {"id": 2, "caption": "Malin Kundang dikutuk menjadi batu di tepi pantai setelah durhaka kepada ibunya.", "prompt": "Indonesian folklore comic style: man in merchant clothes turning into stone statue on a beach, stormy sea, lightning, dramatic shadows, cinematic"}
     ],
     "Perang Banjar": [
-        {"id": 1, "caption": "Kapal Belanda memasuki Sungai Barito, mengincar kekayaan Kesultanan Banjar.", "prompt": "Historical comic: 19th century Dutch steamships on Barito River, thick smoke, jungle landscape, cinematic"},
+        {"id": 1, "caption": "Kapal Belanda memasuki Sungai Barito, mengincar kekayaan Kesultanan Banjar.", "prompt": "Historical comic: 19th century Dutch steamships on Barito River, thick smoke, jungle landscape, cinematic, oil painting style"},
         {"id": 2, "caption": "Pangeran Antasari memimpin rakyat bergerilya di belantara Kalimantan Selatan.", "prompt": "Heroic comic: Prince Antasari leading Indonesian warriors in the jungle, traditional weapons, determined expression, high contrast, dramatic"}
     ]
 }
@@ -59,22 +59,22 @@ with st.sidebar:
     st.divider()
     st.info("Klik tombol 'Gambar' untuk mulai membuat visual adegan.")
 
-# 4. Fungsi Mengambil Gambar dari AI (Imagen 4.0)
+# 4. Fungsi Mengambil Gambar dari AI
 def generate_image(prompt_text):
-    # Proteksi agar tidak eror InvalidSchema jika API_KEY kosong
     if not API_KEY or API_KEY.strip() == "":
         st.error("⚠️ API Key belum dipasang di Secrets!")
-        st.info("Buka 'Manage App' -> 'Settings' -> 'Secrets' dan masukkan kunci Anda.")
         return None
         
-    # URL menggunakan endpoint imagen-4.0-generate-001
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key={API_KEY}"
+    # Menggunakan model 'imagen-3.0-fast-001' yang lebih ramah bagi pengguna free tier
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-fast-001:predict?key={API_KEY}"
     
-    # Payload sesuai spesifikasi Imagen 4.0
+    # PERBAIKAN PAYLOAD: 'instances' harus berupa LIST of objects
     payload = {
-        "instances": {
-            "prompt": prompt_text
-        },
+        "instances": [
+            {
+                "prompt": prompt_text
+            }
+        ],
         "parameters": {
             "sampleCount": 1
         }
@@ -91,7 +91,7 @@ def generate_image(prompt_text):
                 st.error("AI tidak memberikan gambar. Coba lagi.")
                 return None
         else:
-            # Menangani eror dengan detail untuk debugging
+            # Menampilkan detail eror untuk debugging
             st.error(f"Eror dari Server (Status {res.status_code})")
             with st.expander("Klik untuk Detail Eror"):
                 try:
