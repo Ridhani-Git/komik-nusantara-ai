@@ -1,15 +1,20 @@
 import streamlit as st
 import requests
 import base64
+import json
 import os
 
-# Konfigurasi Halaman
-st.set_page_config(page_title="Komik Nusantara AI", layout="wide")
+# 1. Konfigurasi Halaman Dasar
+st.set_page_config(
+    page_title="Portal Komik Nusantara AI",
+    page_icon="🎨",
+    layout="wide"
+)
 
-# CSS Sederhana untuk Gaya Komik
+# Gaya Visual (CSS) agar tampilan seperti Komik Profesional
 st.markdown("""
     <style>
-    .stApp { background-color: #0f172a; color: white; }
+    .stApp { background-color: #0f172a; color: #f8fafc; }
     .caption-box {
         background-color: #fffeb3;
         color: black;
@@ -19,55 +24,113 @@ st.markdown("""
         font-weight: bold;
         margin-bottom: 20px;
         box-shadow: 6px 6px 0px #e11d48;
+        font-family: 'Courier New', Courier, monospace;
     }
+    h1, h2, h3 { font-family: 'Arial Black', sans-serif; color: #e11d48; }
+    .stButton>button { width: 100%; border-radius: 10px; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
-# Mengambil API Key dari Secrets (PENTING!)
+# 2. Mengambil API Key dari Streamlit Secrets
+# PENTING: Di Dashboard Streamlit Cloud > Settings > Secrets harus ada baris ini:
+# GEMINI_API_KEY = "AIzaSy..."
 API_KEY = st.secrets.get("GEMINI_API_KEY", "")
 
-st.title("🎨 Portal Komik Nusantara AI")
+# Judul Utama
+st.markdown("<h1 style='text-align: center;'>🎨 PORTAL KOMIK NUSANTARA AI</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94a3b8;'>Ubah Legenda Nusantara menjadi Visual Nyata dengan AI</p>", unsafe_allow_html=True)
 
-# Database Cerita
-cerita = {
+# 3. Database Cerita Rakyat
+cerita_rakyat = {
     "Malin Kundang": [
-        {"id": 1, "cap": "Malin berpamitan pada ibunya untuk merantau.", "prompt": "Indonesian folklore comic: young man saying goodbye to mother, wooden dock, digital art"},
-        {"id": 2, "cap": "Malin Kundang dikutuk menjadi batu di tepi pantai.", "prompt": "Indonesian folklore comic: man turning into stone on a beach, stormy sea, lightning"}
+        {"id": 1, "caption": "Malin berpamitan pada ibunya di dermaga kecil untuk merantau mengejar nasib.", "prompt": "Indonesian folklore comic style: young man in traditional West Sumatra clothes saying goodbye to his old mother, wooden dock, 19th century village coast"},
+        {"id": 2, "caption": "Malin Kundang dikutuk menjadi batu di tepi pantai setelah durhaka kepada ibunya.", "prompt": "Indonesian folklore comic style: man in merchant clothes turning into stone statue on a beach, stormy sea, lightning, dramatic shadows"}
     ],
     "Perang Banjar": [
-        {"id": 1, "cap": "Kapal Belanda memasuki Sungai Barito.", "prompt": "Historical comic: Dutch steamships on Barito River, thick smoke, 19th century"},
-        {"id": 2, "cap": "Pangeran Antasari memimpin rakyat bergerilya di hutan.", "prompt": "Heroic comic: Prince Antasari leading warriors in Kalimantan jungle, dramatic"}
+        {"id": 1, "caption": "Kapal Belanda memasuki Sungai Barito, mengincar kekayaan Kesultanan Banjar.", "prompt": "Historical comic: 19th century Dutch steamships on Barito River, thick smoke, jungle landscape, cinematic"},
+        {"id": 2, "caption": "Pangeran Antasari memimpin rakyat bergerilya di belantara Kalimantan Selatan.", "prompt": "Heroic comic: Prince Antasari leading Indonesian warriors in the jungle, traditional weapons, determined expression, high contrast, dramatic"}
     ]
 }
 
-pilih = st.selectbox("Pilih Cerita Rakyat:", list(cerita.keys()))
+# Sidebar untuk memilih cerita
+with st.sidebar:
+    st.header("📖 Pilih Legenda")
+    pilihan = st.selectbox("Daftar Cerita:", list(cerita_rakyat.keys()))
+    st.divider()
+    st.info("Klik tombol 'Gambar' untuk mulai membuat visual adegan.")
 
-def get_img(p):
-    if not API_KEY:
+# 4. Fungsi Mengambil Gambar dari AI (Imagen 4.0)
+def generate_image(prompt_text):
+    # Proteksi agar tidak eror InvalidSchema jika API_KEY kosong
+    if not API_KEY or API_KEY.strip() == "":
         st.error("⚠️ API Key belum dipasang di Secrets!")
+        st.info("Buka 'Manage App' -> 'Settings' -> 'Secrets' dan masukkan kunci Anda.")
         return None
-    
+        
+    # URL menggunakan endpoint imagen-4.0-generate-001
     url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key={API_KEY}"
     
+    # Payload sesuai spesifikasi Imagen 4.0
+    payload = {
+        "instances": {
+            "prompt": prompt_text
+        },
+        "parameters": {
+            "sampleCount": 1
+        }
+    }
+    
     try:
-        res = requests.post(url, json={"instances": {"prompt": p}, "parameters": {"sampleCount": 1}}, timeout=40)
+        res = requests.post(url, json=payload, timeout=60)
+        
         if res.status_code == 200:
-            return res.json()['predictions'][0]['bytesBase64Encoded']
+            result = res.json()
+            if 'predictions' in result and len(result['predictions']) > 0:
+                return result['predictions'][0]['bytesBase64Encoded']
+            else:
+                st.error("AI tidak memberikan gambar. Coba lagi.")
+                return None
         else:
-            st.error(f"Eror AI: {res.status_code}")
+            # Menangani eror dengan detail untuk debugging
+            st.error(f"Eror dari Server (Status {res.status_code})")
+            with st.expander("Klik untuk Detail Eror"):
+                try:
+                    st.json(res.json())
+                except:
+                    st.write(res.text)
             return None
     except Exception as e:
-        st.error(f"Koneksi Gagal: {e}")
+        st.error(f"Kesalahan Koneksi: {e}")
         return None
 
+# 5. Tampilan Panel Komik
+st.subheader(f"Cerita: {pilihan}")
+panels = cerita_rakyat[pilihan]
+cols = st.columns(2)
+
+for i, p in enumerate(panels):
+    with cols[i % 2]:
+        st.write(f"### Panel {p['id']}")
+        
+        # Session State agar gambar tetap ada saat klik tombol lain
+        key_img = f"img_{pilihan}_{p['id']}"
+        ph = st.empty()
+        
+        if key_img in st.session_state:
+            ph.image(base64.b64decode(st.session_state[key_img]), use_container_width=True)
+        else:
+            ph.warning("Visual belum dibuat.")
+            
+        # Tombol Gambar
+        if st.button(f"🎨 Gambar Panel {p['id']}", key=f"btn_{pilihan}_{p['id']}"):
+            with st.spinner("AI sedang melukis adegan..."):
+                data = generate_image(p['prompt'])
+                if data:
+                    st.session_state[key_img] = data
+                    st.rerun()
+
+        # Kotak Narasi Teks
+        st.markdown(f'<div class="caption-box">{p["caption"]}</div>', unsafe_allow_html=True)
+
 st.divider()
-for p in cerita[pilih]:
-    st.write(f"### Panel {p['id']}")
-    
-    if st.button(f"🎨 Gambar Panel {p['id']}", key=f"btn_{p['id']}"):
-        with st.spinner("AI sedang melukis..."):
-            data = get_img(p['prompt'])
-            if data:
-                st.image(base64.b64decode(data), use_container_width=True)
-    
-    st.markdown(f'<div class="caption-box">{p["cap"]}</div>', unsafe_allow_html=True)
+st.caption("Dibuat dengan Python, Streamlit, dan Google Gemini AI")
