@@ -65,14 +65,17 @@ def generate_image(prompt_text):
         st.error("⚠️ API Key belum dipasang di Secrets!")
         return None
         
-    # Menggunakan model 'imagen-4.0-generate-001' yang merupakan standar lingkungan ini
+    # Menggunakan model 'imagen-4.0-generate-001'
     url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key={API_KEY}"
     
-    # Format payload yang benar: 'instances' adalah OBJECT, bukan list
+    # PERBAIKAN: Menggunakan format list [ { ... } ] untuk instances
+    # Ini seringkali memperbaiki eror 400 'Paid plans' karena format yang lebih sesuai standar Vertex AI
     payload = {
-        "instances": {
-            "prompt": prompt_text
-        },
+        "instances": [
+            {
+                "prompt": prompt_text
+            }
+        ],
         "parameters": {
             "sampleCount": 1
         }
@@ -93,7 +96,6 @@ def generate_image(prompt_text):
             st.error(f"Eror dari Server (Status {res.status_code})")
             with st.expander("Klik untuk Detail Eror"):
                 try:
-                    # Mencoba menampilkan JSON eror jika ada
                     st.json(res.json())
                 except:
                     st.write(res.text)
