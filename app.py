@@ -68,14 +68,12 @@ def generate_image(prompt_text):
     # Menggunakan model 'imagen-4.0-generate-001'
     url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key={API_KEY}"
     
-    # PERBAIKAN: Menggunakan format list [ { ... } ] untuk instances
-    # Ini seringkali memperbaiki eror 400 'Paid plans' karena format yang lebih sesuai standar Vertex AI
+    # PERBAIKAN: Menggunakan format objek tunggal untuk instances (tanpa kurung siku)
+    # Ini menyesuaikan dengan spesifikasi teknis untuk menghindari INVALID_ARGUMENT
     payload = {
-        "instances": [
-            {
-                "prompt": prompt_text
-            }
-        ],
+        "instances": {
+            "prompt": prompt_text
+        },
         "parameters": {
             "sampleCount": 1
         }
